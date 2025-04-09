@@ -3,7 +3,7 @@ on: # rebuild any PRs and main branch changes (mirror few typescript-action conv
   pull_request:
   push:
     branches:
-      - master
+      - main
       - 'releases/*'
 jobs:
   build-test:
