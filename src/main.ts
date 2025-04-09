@@ -30,6 +30,7 @@ const getInputs = (): JIRALintActionInputs => {
   const BRANCH_IGNORE_PATTERN: string = core.getInput('skip-branches', { required: false }) || '';
   const SKIP_COMMENTS: boolean = core.getInput('skip-comments', { required: false }) === 'true';
   const SKIP_LABELS: boolean = core.getInput('skip-labels', { required: false }) === 'true';
+  const SKIP_PR_SIZE_CHECK: boolean = core.getInput('skip-pr-size-check', { required: false }) === 'true';
   const PR_THRESHOLD = parseInt(core.getInput('pr-threshold', { required: false }), 10);
   const VALIDATE_ISSUE_STATUS: boolean = core.getInput('validate_issue_status', { required: false }) === 'true';
   const ALLOWED_ISSUE_STATUSES: string = core.getInput('allowed_issue_statuses');
@@ -40,6 +41,7 @@ const getInputs = (): JIRALintActionInputs => {
     BRANCH_IGNORE_PATTERN,
     SKIP_COMMENTS,
     SKIP_LABELS,
+    SKIP_PR_SIZE_CHECK,
     PR_THRESHOLD: isNaN(PR_THRESHOLD) ? DEFAULT_PR_ADDITIONS_THRESHOLD : PR_THRESHOLD,
     JIRA_BASE_URL: JIRA_BASE_URL.endsWith('/') ? JIRA_BASE_URL.replace(/\/$/, '') : JIRA_BASE_URL,
     VALIDATE_ISSUE_STATUS,
@@ -56,6 +58,7 @@ async function run(): Promise<void> {
       BRANCH_IGNORE_PATTERN,
       SKIP_COMMENTS,
       SKIP_LABELS,
+      SKIP_PR_SIZE_CHECK,
       PR_THRESHOLD,
       VALIDATE_ISSUE_STATUS,
       ALLOWED_ISSUE_STATUSES,
@@ -122,11 +125,11 @@ async function run(): Promise<void> {
     if (!issueKeys.length) {
       const comment: IssuesCreateCommentParams = {
         ...commonPayload,
-        body: getNoIdComment(headBranch),
+        body: getNoIdComment(title),
       };
       await addComment(client, comment);
 
-      core.setFailed('JIRA issue id is missing in your branch.');
+      core.setFailed('JIRA issue id is missing in your PR title.');
       process.exit(1);
     }
 
@@ -141,7 +144,7 @@ async function run(): Promise<void> {
       const hotfixLabel: string = getHotfixLabel(baseBranch);
       const typeLabel: string = details?.type?.name || '';
       const labels: string[] = [podLabel, hotfixLabel, typeLabel].filter(isNotBlank);
-      console.log('Adding lables -> ', labels);
+      console.log('Adding labels -> ', labels);
 
       if (!SKIP_LABELS) {
         await addLabels(client, {
@@ -182,7 +185,7 @@ async function run(): Promise<void> {
           addComment(client, prTitleComment);
 
           // add a comment if the PR is huge
-          if (isHumongousPR(additions, prThreshold)) {
+          if (!SKIP_PR_SIZE_CHECK && isHumongousPR(additions, prThreshold)) {
             const hugePrComment: IssuesCreateCommentParams = {
               ...commonPayload,
               body: getHugePrComment(additions, prThreshold),
