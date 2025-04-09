@@ -119,6 +119,7 @@ export interface JIRALintActionInputs {
   BRANCH_IGNORE_PATTERN: string;
   SKIP_COMMENTS: boolean;
   SKIP_LABELS: boolean;
+  SKIP_PR_SIZE_CHECK: boolean;
   PR_THRESHOLD: number;
   VALIDATE_ISSUE_STATUS: boolean;
   ALLOWED_ISSUE_STATUSES: string;
