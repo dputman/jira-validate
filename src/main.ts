@@ -29,6 +29,7 @@ const getInputs = (): JIRALintActionInputs => {
   const GITHUB_TOKEN: string = core.getInput('github-token', { required: true });
   const BRANCH_IGNORE_PATTERN: string = core.getInput('skip-branches', { required: false }) || '';
   const SKIP_COMMENTS: boolean = core.getInput('skip-comments', { required: false }) === 'true';
+  const SKIP_LABELS: boolean = core.getInput('skip-labels', { required: false }) === 'true';
   const PR_THRESHOLD = parseInt(core.getInput('pr-threshold', { required: false }), 10);
   const VALIDATE_ISSUE_STATUS: boolean = core.getInput('validate_issue_status', { required: false }) === 'true';
   const ALLOWED_ISSUE_STATUSES: string = core.getInput('allowed_issue_statuses');
@@ -38,6 +39,7 @@ const getInputs = (): JIRALintActionInputs => {
     GITHUB_TOKEN,
     BRANCH_IGNORE_PATTERN,
     SKIP_COMMENTS,
+    SKIP_LABELS,
     PR_THRESHOLD: isNaN(PR_THRESHOLD) ? DEFAULT_PR_ADDITIONS_THRESHOLD : PR_THRESHOLD,
     JIRA_BASE_URL: JIRA_BASE_URL.endsWith('/') ? JIRA_BASE_URL.replace(/\/$/, '') : JIRA_BASE_URL,
     VALIDATE_ISSUE_STATUS,
@@ -53,6 +55,7 @@ async function run(): Promise<void> {
       GITHUB_TOKEN,
       BRANCH_IGNORE_PATTERN,
       SKIP_COMMENTS,
+      SKIP_LABELS,
       PR_THRESHOLD,
       VALIDATE_ISSUE_STATUS,
       ALLOWED_ISSUE_STATUSES,
@@ -96,7 +99,7 @@ async function run(): Promise<void> {
     const client: github.GitHub = new github.GitHub(GITHUB_TOKEN);
 
     if (!headBranch && !baseBranch) {
-      const commentBody = 'jira-lint is unable to determine the head and base branch';
+      const commentBody = 'jira-validate is unable to determine the head and base branch';
       const comment: IssuesCreateCommentParams = {
         ...commonPayload,
         body: commentBody,
@@ -114,7 +117,8 @@ async function run(): Promise<void> {
       process.exit(0);
     }
 
-    const issueKeys = getJIRAIssueKeys(headBranch);
+    // const issueKeys = getJIRAIssueKeys(headBranch);
+    const issueKeys = getJIRAIssueKeys(title);
     if (!issueKeys.length) {
       const comment: IssuesCreateCommentParams = {
         ...commonPayload,
@@ -139,10 +143,12 @@ async function run(): Promise<void> {
       const labels: string[] = [podLabel, hotfixLabel, typeLabel].filter(isNotBlank);
       console.log('Adding lables -> ', labels);
 
-      await addLabels(client, {
-        ...commonPayload,
-        labels,
-      });
+      if (!SKIP_LABELS) {
+        await addLabels(client, {
+          ...commonPayload,
+          labels,
+        });
+      }
 
       if (!isIssueStatusValid(VALIDATE_ISSUE_STATUS, ALLOWED_ISSUE_STATUSES.split(','), details)) {
         const invalidIssueStatusComment: IssuesCreateCommentParams = {
