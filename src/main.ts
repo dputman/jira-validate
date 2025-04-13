@@ -25,6 +25,7 @@ import { DEFAULT_PR_ADDITIONS_THRESHOLD } from './constants';
 
 const getInputs = (): JIRALintActionInputs => {
   const JIRA_TOKEN: string = core.getInput('jira-token', { required: true });
+  const JIRA_USERNAME: string = core.getInput('jira-username', { required: true });
   const JIRA_BASE_URL: string = core.getInput('jira-base-url', { required: true });
   const GITHUB_TOKEN: string = core.getInput('github-token', { required: true });
   const BRANCH_IGNORE_PATTERN: string = core.getInput('skip-branches', { required: false }) || '';
@@ -37,6 +38,7 @@ const getInputs = (): JIRALintActionInputs => {
 
   return {
     JIRA_TOKEN,
+    JIRA_USERNAME,
     GITHUB_TOKEN,
     BRANCH_IGNORE_PATTERN,
     SKIP_COMMENTS,
@@ -53,6 +55,7 @@ async function run(): Promise<void> {
   try {
     const {
       JIRA_TOKEN,
+      JIRA_USERNAME,
       JIRA_BASE_URL,
       GITHUB_TOKEN,
       BRANCH_IGNORE_PATTERN,
@@ -66,6 +69,7 @@ async function run(): Promise<void> {
 
     const defaultAdditionsCount = 800;
     const prThreshold: number = PR_THRESHOLD ? Number(PR_THRESHOLD) : defaultAdditionsCount;
+    const AUTH_TOKEN = Buffer.from(`${JIRA_USERNAME}:${JIRA_TOKEN}`).toString('base64');
 
     const {
       payload: {
@@ -137,7 +141,7 @@ async function run(): Promise<void> {
     const issueKey = issueKeys[issueKeys.length - 1];
     console.log(`JIRA key -> ${issueKey}`);
 
-    const { getTicketDetails } = getJIRAClient(JIRA_BASE_URL, JIRA_TOKEN);
+    const { getTicketDetails } = getJIRAClient(JIRA_BASE_URL, AUTH_TOKEN);
     const details: JIRADetails = await getTicketDetails(issueKey);
     if (details.key) {
       const podLabel = details?.project?.name || '';
