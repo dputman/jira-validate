@@ -8,6 +8,9 @@ inputs:
   jira-token:
     description: 'API Token used to access the JIRA REST API. Must have read access to your JIRA Projects & Issues.'
     required: true
+  jira-username:
+    description: 'Username used to access the JIRA REST API. Must have read access to your JIRA Projects & Issues.'
+    required: true
   jira-base-url:
     description: 'The subdomain of JIRA cloud that you use to access it. Ex: "https://your-domain.atlassian.net"'
     required: true
